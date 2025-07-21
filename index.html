@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Timer</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .timer-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .timer-box {
+      border: 2px solid white;
+      border-radius: 10px;
+      padding: 20px;
+      width: 300px;
+      background-color: #111;
+    }
+
+    .timer-display {
+      font-size: 3em;
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .controls input[type="number"],
+    .controls input[type="text"],
+    .controls select {
+      padding: 8px;
+      font-size: 1em;
+      width: 80px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    .controls button {
+      padding: 8px 15px;
+      font-size: 1em;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .controls button:hover {
+      background-color: #555;
+    }
+
+    #add-timer {
+      display: block;
+      margin: 20px auto;
+      font-size: 1.2em;
+      padding: 10px 20px;
+    }
+
+     .fullscreen-active {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20vw; /* Ukuran super besar */
+    text-align: center;
+    margin: 0;
+    z-index: 9999;
+  }
+  </style>
+</head>
+<body>
+
+<h1>Multi Countdown Timer</h1>
+
+<button id="add-timer">➕ Tambah Timer</button>
+
+<div class="timer-container" id="timers"></div>
+
+<audio id="alarm" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto"></audio>
+
+<script>
+  let timerIdCounter = 0;
+
+  function createTimer() {
+    const id = ++timerIdCounter;
+
+    const timerBox = document.createElement('div');
+    timerBox.className = 'timer-box';
+    timerBox.innerHTML = `
+      <input type="text" placeholder="Nama Timer" id="label-${id}" style="width: 100%; font-size: 1.2em; text-align: center; margin-bottom: 10px;">
+      <div class="controls">
+        <input type="number" id="h-${id}" placeholder="HH" min="0">
+        <input type="number" id="m-${id}" placeholder="MM" min="0" max="59">
+        <input type="number" id="s-${id}" placeholder="SS" min="0" max="59">
+        <select id="color-${id}">
+          <option value="white">Putih</option>
+          <option value="red">Merah</option>
+          <option value="lime">Hijau</option>
+          <option value="skyblue">Biru</option>
+        </select>
+      </div>
+      <div class="timer-display" id="display-${id}">00:00:00</div>
+      <div class="controls">
+        <button onclick="setTime(${id})">Set</button>
+        <button onclick="startTimer(${id})">Start</button>
+        <button onclick="pauseTimer(${id})" id="pause-${id}">Pause</button>
+        <button onclick="resetTimer(${id})">Reset</button>
+        <button onclick="goFullscreen('display-${id}')">Fullscreen</button>
+      </div>
+    `;
+
+    document.getElementById('timers').appendChild(timerBox);
+
+    // Data untuk timer
+    window[`timerData${id}`] = {
+      seconds: 0,
+      interval: null,
+      paused: false
+    };
+  }
+
+  function format(sec) {
+    const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+    const s = String(sec % 60).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  }
+
+  function setTime(id) {
+    const h = parseInt(document.getElementById(`h-${id}`).value) || 0;
+    const m = parseInt(document.getElementById(`m-${id}`).value) || 0;
+    const s = parseInt(document.getElementById(`s-${id}`).value) || 0;
+    const total = h * 3600 + m * 60 + s;
+
+    const color = document.getElementById(`color-${id}`).value;
+    const display = document.getElementById(`display-${id}`);
+    display.style.color = color;
+
+    window[`timerData${id}`].seconds = total;
+    updateDisplay(id);
+  }
+
+  function startTimer(id) {
+    const data = window[`timerData${id}`];
+    if (data.interval || data.seconds <= 0) return;
+
+    data.interval = setInterval(() => {
+      if (!data.paused) {
+        if (data.seconds <= 0) {
+          clearInterval(data.interval);
+          data.interval = null;
+          document.getElementById("alarm").play();
+        } else {
+          data.seconds--;
+          updateDisplay(id);
+        }
+      }
+    }, 1000);
+  }
+
+  function pauseTimer(id) {
+    const data = window[`timerData${id}`];
+    data.paused = !data.paused;
+    document.getElementById(`pause-${id}`).textContent = data.paused ? 'Resume' : 'Pause';
+  }
+
+  function resetTimer(id) {
+    const data = window[`timerData${id}`];
+    clearInterval(data.interval);
+    data.interval = null;
+    data.seconds = 0;
+    data.paused = false;
+    document.getElementById(`pause-${id}`).textContent = 'Pause';
+    updateDisplay(id);
+  }
+
+  function updateDisplay(id) {
+    const data = window[`timerData${id}`];
+    document.getElementById(`display-${id}`).textContent = format(data.seconds);
+  }
+
+ function goFullscreen(id) {
+  const display = document.getElementById(id);
+  
+  // Clone elemen dan masukkan ke div baru untuk fullscreen
+  const fullscreenDiv = document.createElement('div');
+  fullscreenDiv.classList.add('fullscreen-active');
+  fullscreenDiv.id = `fullscreen-${id}`;
+  fullscreenDiv.textContent = display.textContent;
+  fullscreenDiv.style.color = display.style.color;
+
+  document.body.appendChild(fullscreenDiv);
+
+  if (fullscreenDiv.requestFullscreen) {
+    fullscreenDiv.requestFullscreen();
+  } else if (fullscreenDiv.webkitRequestFullscreen) {
+    fullscreenDiv.webkitRequestFullscreen();
+  } else if (fullscreenDiv.msRequestFullscreen) {
+    fullscreenDiv.msRequestFullscreen();
+  }
+
+  // Sync waktu tiap detik
+  const syncInterval = setInterval(() => {
+    if (!document.fullscreenElement) {
+      clearInterval(syncInterval);
+      fullscreenDiv.remove();
+    } else {
+      fullscreenDiv.textContent = display.textContent;
+    }
+  }, 500);
+}
+
+
+  document.getElementById('add-timer').addEventListener('click', createTimer);
+
+// Buat timer pertama default
+createTimer();
+</script>
+
+</body>
+</html>
