@@ -1,7 +1,14 @@
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open("timer-app").then((cache) => {
-      return cache.addAll(["index.html", "manifest.json"]);
+    caches.open("my-timer-cache").then((cache) => {
+      return cache.addAll([
+        "./index.html",
+        "./style.css", // kalau ada
+        "./script.js", // kalau ada
+        "./manifest.json",
+        "./icons/icon-192.png",
+        "./icons/icon-512.png"
+      ]);
     })
   );
 });
